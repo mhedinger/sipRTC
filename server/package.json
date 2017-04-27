@@ -1,0 +1,13 @@
+{
+  "name": "siprtc-wsserver",
+  "version": "1.0.0",
+  "description": "sipRTC WebSocket Server app",
+  "main": "app.js",
+  "dependencies": {
+    "ws": ""
+  , "https": ""
+  , "fs": ""
+  },
+  "author": "Michael Hedinger",
+  "license": "ISC"
+}

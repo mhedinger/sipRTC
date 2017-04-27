@@ -1,0 +1,486 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta name="keywords" content="Apotheke,Ärzte,Selbstdispensation,Graubünden,Chur,WHO,Heilmittelgesetz,Medikamentenabgabe,Notfalldienst,Gesundheitszentrum,Schweiz">
+<title>Apotheken-Notfalldienst in Chur</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+a{text-decoration:none}
+a.obg1{ackground-color:transparent;cursor:hand}
+a.obg:hover{background-color:transparent}
+a:hover{text-decoration:underline}
+
+
+
+html, body { height: 100%; }
+
+form {
+	background: #000;
+	padding: 3px;
+/* position: fixed; */
+	bottom: 0;
+	width: 100%;
+}
+
+form input {
+	border: 0;
+	padding: 10px;
+	width: 80%;
+	margin-right: .5%;
+}
+
+form button {
+	width: 18%;
+	background: rgb(130, 224, 255);
+	border: none;
+	padding: 10px;
+}
+
+#messages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+#messages li {
+	padding: 5px 10px;
+}
+
+#messages li:nth-child(odd) {
+	background: #eee;
+}
+
+.red {
+	color: #f00;
+}
+
+</style>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  
+<script src="https://sipjs.com/download/sip-0.7.7.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  
+</head>
+
+<body>
+
+<div class="container" style="position: absolute; bottom: 0;right: 0;text-align: right; width: 400px; background-color: transparent; position: fixed">
+    <button type="button" class="btn btn-default" data-toggle="collapse" data-target="#demo">
+      <span class="glyphicon glyphicon-collapse-up"></span> Video-Chat
+    </button>
+  <div id="demo" class="collapse" style="background-color: #fff;">
+	<p style="text-align: left;">
+		<input id="state" />
+	</p>
+	<p style="text-align: left;">
+		<input id="calleeState" />
+	</p>
+	<p style="text-align: left;">
+	<button class="btn btn-success" id="startCall" disabled="disabled" style="text-align: left;">Anrufen</button>
+	<button class="btn btn-danger" id="endCall" disabled="disabled">Beenden</button>
+	</p>
+	
+	<p style="text-align: center;<">
+	<video id="remoteVideo" style="border: 1px solid lightgrey; width: 350px;"></video>
+	<video id="localVideo" muted="muted" style="position: relative; top: -85px; left: -115px; width: 100px; border: 0px" draggable="auto"></video>
+	
+	</p>
+			<ul id="messages" style="overflow: auto;max-height: 200px;"></ul>
+			<form action="">
+		<input id="m" autocomplete="off" />
+		<button class="btn btn-primary" >Senden</button>
+	</form>
+	
+	<script type="text/javascript">
+	var connection = new WebSocket('wss://www.siprtc.ch:4001');
+	
+	// When the connection is open, send some data to the server
+	connection.onopen = function () {
+	  connection.send('stateRequest'); // Send the message 'Ping' to the server
+	};
+	
+	connection.onmessage = function (e) {
+		  if (e.data == 'calleeReady') {
+			  $('#calleeState').val('Apotheke bereit');
+		 	$('#calleeState').css("background-color", "#0F0");
+		  } else if (e.data == 'calleeBusy') {
+			  $('#calleeState').val('Apotheke nicht bereit');
+				$('#calleeState').css("background-color", "#F00");
+		  }
+		};
+	
+	
+	var session;
+
+		var startButton = document.getElementById('startCall');
+		startButton.addEventListener("click", function() {
+			//makes the call
+			session = userAgent.invite('sip:300@www.siprtc.ch', options);
+			session.on('bye', function(request) {
+				location.reload();
+			});
+			$('#state').val('im Gespräch');
+			$('#state').css("background-color", "#00F");
+		}, false);
+
+		var endButton = document.getElementById('endCall');
+		endButton.addEventListener("click", function() {
+			session.bye();
+			location.reload();
+		}, false);
+
+		//Creates the anonymous user agent so that you can make calls
+		var userAgent = new SIP.UA(
+				{
+					uri : '301@www.siprtc.ch',
+					//wsServers : [ 'wss://asterisk.prbox.biz:8089/ws' ],
+					wsServers : [ 'wss://www.siprtc.ch:5063' ],
+					  // Replace this with the username from your sip.conf file
+					  authorizationUser: '301',
+
+					  // Replace this with the password from your sip.conf file
+					  password: '301',
+					  hackStripTcp : true,
+					  userAgentString: "sipRTC 1.0.0 Kunde",
+
+					  
+					register : true,
+					//register : false,
+					traceSip : true,
+					displayName : "Bob",
+					iceCheckingTimeout : 1000,
+					stunServers : [ "stun:stun.3cx.com:3478",
+							"stun:stun2.3cx.com:3478" ],
+					
+					turnServers : [ {
+						urls : "turn:turn.tlab.ch:80",
+						username : "tlabuser",
+						password : "tlabpass"
+					} ]
+				})
+		
+		userAgent.on('connecting', function() {
+			$('#state').val('Verbinde...');
+			$('#state').css("background-color", "#FF0");
+			document.getElementById('startCall').disabled = 'disabled';
+		})
+
+		userAgent.on('connected', function() {
+			$('#state').val('Client verbunden');
+			$('#state').css("background-color", "#0F0");
+			document.getElementById('startCall').disabled = false;
+			document.getElementById('endCall').disabled = false;
+		})
+
+		userAgent.on('disconnected', function() {
+			$('#state').val('disconnected');
+			$('#state').css("background-color", "#F00");
+			document.getElementById('startCall').disabled = 'disabled';
+		})
+
+		userAgent.on('message', function(msg) {
+			// If we have not received any messages yet, remove the placeholder
+			// text.
+			$('#messages').append($('<li>').text(msg.body));
+		});
+		
+		var subscription = userAgent.subscribe('300@www.siprtc.ch', 'presence');
+		subscription.on('notify', function (notification) {
+			  console.log(notification.request.body);
+			});
+		
+
+		$('form').submit(function() {
+			userAgent.message('300@www.siprtc.ch', $('#m').val());
+			$('#messages').append($('<li class="red">').text($('#m').val()));
+			$('#m').val('');
+			return false;
+		});
+
+		//here you determine whether the call has video and audio
+		var options = {
+			media : {
+				constraints : {
+					audio : true,
+					video : true
+				},
+				render : {
+					remote : document.getElementById('remoteVideo'),
+					local : document.getElementById('localVideo')
+				}
+			}
+		};
+	</script>
+  </div>
+</div>
+
+<script>
+$(document).ready(function(){
+  $("#demo").on("hide.bs.collapse", function(){
+    $(".btn").html('<span class="glyphicon glyphicon-collapse-up"></span> Video-Chat');
+  });
+  $("#demo").on("show.bs.collapse", function(){
+    $(".btn").html('<span class="glyphicon glyphicon-collapse-down"></span> Schliessen');
+  });
+});
+
+
+</script>
+
+<p><font face="Arial" size="5"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Dienst der
+Apotheken der Stadt Chur<br>
+</font><font size="2">&nbsp;&nbsp;&nbsp;&nbsp;</font><br>
+<font face="Arial" size="3"><b>Die aktuelle Notfallapotheke kann
+jederzeit über Tel.-Nr. 144 erfragt werden.</b></font>
+</p>
+
+
+<table border="0" width="557" height="318">
+  <tr>
+    <td width="543" bgcolor="#008000" colspan="2" height="128">
+      <table border="0" width="95%" height="123">
+        <tr>
+          <td width="2%" height="119"></td>
+          <td width="98%" height="119"><span style="mso-bidi-font-size: 10.5pt; font-family: Arial; mso-fareast-font-family: Times New Roman; color: white; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: normal"><font size="4"><b style="mso-bidi-font-weight: normal; mso-bidi-font-size: 10.5pt; font-family: Arial; mso-fareast-font-family: Times New Roman; color: white; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">Die
+            Churer Apotheken wechseln sich im Notfalldienst ab. </b><b style="mso-bidi-font-weight: normal; mso-bidi-font-size: 10.5pt; font-family: Arial; mso-fareast-font-family: Times New Roman; color: white; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">Die
+            </b><b style="mso-bidi-font-weight:normal">Notfallapotheke</b><span style="mso-bidi-font-weight: normal; mso-bidi-font-size: 10.5pt; font-family: Arial; mso-fareast-font-family: Times New Roman; color: white; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA"><b>
+            steht ausserhalb</b> <b>der</b> <b>üblichen</b> <b>Öffnungszeiten</b>
+            <b>der</b> <b>Apotheken auf telefonische Voranmeldung hin unter
+            Verrechnung einer Diensttaxe für alle Personen aus der Region Chur
+            zur Verfügung</b> </span><b><span style="mso-bidi-font-weight: normal; mso-bidi-font-size: 10.5pt; font-family: Arial; mso-fareast-font-family: Times New Roman; color: white; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">(Nachtdienst).</span></b></font></span></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="5"><font size="1">&nbsp;&nbsp;&nbsp;&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="12" height="173"></td>
+    <td width="531" height="173"><b><span style="mso-bidi-font-size: 10.5pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial" color="#008000">
+      Die
+      Notfallapotheke ist in der Nacht </font><font face="Arial" color="#FF0000">auf telefonische
+      Voranmeldung hin
+      innert 30 Minuten </font><font face="Arial" color="#008000">wie folgt
+      erreichbar: </font> <font face="Arial" color="#FF0000">An Werktagen
+      jeweils ab 19.30 Uhr bis morgens um 7 Uhr,</font><font face="Arial" color="#008000">&nbsp;
+      </font><font face="Arial" color="#FF0000">an Sonn- und Feiertagen
+      jeweils ab 17.30 Uhr bis morgens um 8 Uhr.</font><font face="Arial" color="#008000">&nbsp;<font size="2"><br>
+      </font><font size="1">&nbsp;&nbsp;&nbsp;&nbsp;</font><br>
+      </font></span></b><span style="mso-fareast-font-family: Times New Roman; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><b><font face="Arial" color="#008000">
+      Ausserhalb
+      der üblichen Öffnungszeiten wird eine </font><font face="Arial" color="#FF0000"> Diensttaxe</font><font face="Arial" color="#008000"> von&nbsp;&nbsp; CHF 15.- erhoben,
+      ab 21 Uhr bis morgens eine </font><font face="Arial" color="#FF0000"> Nachtdiensttaxe</font><font face="Arial" color="#008000"> von CHF 35.-.&nbsp; Für das Einlösen ärztlicher Rezepte gelten die </font><font face="Arial" color="#FF0000"> Notfallpauschalen
+      LOA</font><font face="Arial" color="#008000">.</font></b></span></td>
+  </tr>
+</table>
+
+<table border="0" width="557">
+  <tr>
+    <td width="386" height="35"></td>
+    <td width="157" height="35"></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="21"><b style="mso-bidi-font-weight:normal"><span style="font-size: 12.0pt; mso-bidi-font-size: 10.5pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial">Übliche Öffnungszeiten der Churer Apotheken:</font></span></b></td>
+  </tr>
+  <tr>
+    <td width="543" colspan="2" height="20"><font face="Arial">__________________________________________________________</font></td>
+  </tr>
+  <tr>
+    <td width="543" colspan="2" height="16"><font size="1" face="Arial">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a href="http://tel.search.ch/chur/-/amavita-apotheke-chur" target="_blank"><font color="#000000"><span lang="EN-GB" style="font-size: 11.0pt; mso-bidi-font-size: 10.5pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: EN-GB; mso-fareast-language: DE; mso-bidi-language: AR-SA">Amavita-Apotheke
+      Chur</span></font></a></b><span lang="EN-GB" style="font-size:11.0pt;mso-bidi-font-size:10.5pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:EN-GB;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Bahnhofunterführung</span></font></td>
+    <td width="157" height="20"><span lang="EN-GB" style="font-size: 11.0pt; mso-bidi-font-size: 10.5pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: EN-GB; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.5pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: EN-GB; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 058 851 32 44</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><b><font color="#008000"><span style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Sa 07.00-20.00,
+      Sonn-
+      und Feiertage 08.00-18.00</font></span><font face="Arial"><span style="mso-spacerun: yes">&nbsp;</span></font></font></b></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/grabenstrasse-15/amavita-apotheke-landi"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Amavita-Apotheke
+      Landi</span></font></a><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;
+font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA;
+mso-bidi-font-weight:bold">Grabenstrasse 15</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 058 851 32 51</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo 09.00-18.30, Di-Fr 08.00-18.30, Sa 08.00-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/badusstrasse-10/apollo-apotheke"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Apollo-Apotheke</span></font></a></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:IT;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Badusstrasse 10</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 284 15 24</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.00, 13.30-18.30, Sa 08.00-12.00,
+      13.30-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="10"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/raschaerenstrasse-35/coop-vitality-apotheke"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Coop
+      Vitality Apotheke</span></font></a><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;
+font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA;
+mso-bidi-font-weight:bold">Raschärenstrasse 35</span></font></td>
+    <td width="157" height="10"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081
+      2</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">52</b><b style="mso-bidi-font-weight:normal">
+      </b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">11</b><b style="mso-bidi-font-weight:normal">
+      </b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">83</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="543" height="5" colspan="2"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Do
+      09.00-19.00, Fr 09.00-20.00, Sa 08.00-18.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/giacomettistrasse-32/giacometti-apotheken-ag"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Giacometti-Apotheke</span></font></a><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;
+font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA;
+mso-bidi-font-weight:bold">Giacomettistrasse 32</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 284 18 18</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.00, 14.00-18.30, Sa
+      08.00-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/bahnhofstrasse-44/pill-apotheke-grischuna"><font color="#000000"><span style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">Grischuna-Apotheke</span></font></a><span style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:DE-CH;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:
+Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:
+DE-CH;mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:
+bold">Postplatz</span></font></td>
+    <td width="157" height="20"><span style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 252 80 80</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial"> Mo-Fr
+      08.00-18.30, Sa 08.00-17.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/belmontstrasse-1/drogerie-apotheke-lacuna"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Lacuna-Apotheke</span></font></a><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;
+font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA;
+mso-bidi-font-weight:bold">Belmontstrasse 1</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 284 55 05</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.00, 13.30-18.30, Sa 08.00-12.00,
+      13.00-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/ringstrasse-88/montalin-apotheke"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Montalin-Apotheke</span></font></a></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:IT;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Ringstrasse 88</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 284 35 55</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="5"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.00, 13.30-18.30, Sa 08.00-17.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/guertelstrasse-10/toppharm-apotheke-dr-villa"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">TopPharm
+      Apotheke
+      Dr. Villa</span></font></a></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:IT;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Gürtelstrasse 10</span></font></td>
+    <td width="157" height="20"><span style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: DE-CH; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 253 41 41</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="10"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Do 08.00-18.30, Fr 08.00-20.00, Sa 08.00-17.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="5"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/tittwiesenstrasse-55/toppharm-fortuna-apotheke"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">TopPharm
+      Fortuna-Apotheke</span></font></a><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA"> </span></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;
+font-family:Arial;mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;
+mso-ansi-language:IT;mso-fareast-language:DE;mso-bidi-language:AR-SA;
+mso-bidi-font-weight:bold">Tittwiesenstrasse 55</span></font></td>
+    <td width="157" height="5"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 284 20 22</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.00, 13.30-18.30, Sa 08.00-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/bahnhofstrasse-14/raetus-apotheke"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">TopPharm
+      Raetus-Apotheke</span></font></a></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:IT;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Bahnhofstrasse 14</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 250 15 15</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Do
+      07.30-19.00, </font></span><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial"><span style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold">Fr</span></font></span><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">
+      07.30-20.00, </font></span><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial"> Sa 07.30-18.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="386" height="20"><font face="Arial"><b><a target="_blank" href="http://tel.search.ch/chur/quaderstrasse-16/monika-steinbock-apotheke-fehr-2"><font color="#000000"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">Steinbock-Apotheke</span></font></a></b><span lang="IT" style="font-size:11.0pt;mso-bidi-font-size:10.0pt;font-family:Arial;
+mso-fareast-font-family:&quot;Times New Roman&quot;;color:black;mso-ansi-language:IT;
+mso-fareast-language:DE;mso-bidi-language:AR-SA;mso-bidi-font-weight:bold">
+      Quaderstrasse 16</span></font></td>
+    <td width="157" height="20"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA"><font face="Arial"><b style="mso-bidi-font-weight:normal">Tel</b><b style="mso-bidi-font-weight: normal; font-size: 11.0pt; mso-bidi-font-size: 10.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA">.</b><b style="mso-bidi-font-weight:normal"> 081 252 26 80</b></font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="19"><span lang="IT" style="font-size: 11.0pt; mso-bidi-font-size: 8.0pt; mso-fareast-font-family: Times New Roman; color: black; mso-ansi-language: IT; mso-fareast-language: DE; mso-bidi-language: AR-SA; mso-bidi-font-weight: bold"><font face="Arial">Mo-Fr 08.00-12.15, 13.15-18.30, Sa 08.00-16.00</font></span></td>
+  </tr>
+  <tr>
+    <td width="549" colspan="2" height="20"><font face="Arial">__________________________________________________________</font></td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<table border="0" width="560">
+  <tr>
+    <td width="552">
+    </td>
+  </tr>
+</table>
+<p><font face="Arial" size="1" color="#808080">&nbsp;&nbsp;<br>
+<br>
+</font>
+</p>
+
+
+<table border="0" width="560">
+  <tr>
+    <td width="552">
+      <p align="left"><b><font face="Arial"><br>
+ </font></b>
+    </td>
+  </tr>
+</table>
+<p><br>
+<font face="Arial" size="1" color="#808080"> <br>
+</font><font face="Arial" color="#808080" size="2">Inhalte zu Demonstrationszwecken teilweise &uuml;bernommen von </font><a href="http://www.notfall.apotheke-chur.ch/"><font face="Arial" color="#808080" size="2">http://www.notfall.apotheke-chur.ch/</font></a>
+</p>
+<p>
+<font face="Arial" color="#808080" size="2"><a href="apotheke.html" target="_blank">Hier</a> geht es zur Apotheken-Ansicht.</font>
+</p>
+
+
+</html>
+
