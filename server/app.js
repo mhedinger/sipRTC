@@ -17,11 +17,8 @@ var processRequest = function(req, res) {
 };
 
 app = httpServ.createServer({
-
-	// providing server with SSL key/cert
 	key : fs.readFileSync(cfg.ssl_key),
 	cert : fs.readFileSync(cfg.ssl_cert)
-
 }, processRequest).listen(cfg.port);
 
 var wss = new WebSocketServer({
@@ -45,8 +42,6 @@ wss.on('connection', function connection(ws) {
 		} else if (data == 'Ping') {
 			console.log('Callee connected');
 		}
-
-		// Broadcast to everyone else.
 		wss.clients.forEach(function each(client) {
 			if (client !== ws) {
 				client.send(data);
