@@ -1,0 +1,1 @@
+The following directories are part of the /etc/apache2/ folder.

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Solution - Bob</title>
+<link rel="icon" type="image/vnd.microsoft.icon" href="https://www.siprtc.ch/favicon.ico" />
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font: 13px Helvetica, Arial;
+}
+
+div {
+	display: inline;
+}
+
+video {
+	border: 1px solid lightgrey;
+}
+
+form {
+	background: #000;
+	padding: 3px;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+}
+
+form input {
+	border: 0;
+	padding: 10px;
+	width: 90%;
+	margin-right: .5%;
+}
+
+form button {
+	width: 9%;
+	background: rgb(130, 224, 255);
+	border: none;
+	padding: 10px;
+}
+
+#messages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+#messages li {
+	padding: 5px 10px;
+}
+
+#messages li:nth-child(odd) {
+	background: #eee;
+}
+
+.red {
+	color: #f00;
+}
+</style>
+<script src="https://sipjs.com/download/sip-0.7.8.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+</head>
+<body>
+	<ul id="messages"></ul>
+	<form action="">
+		<input id="m" autocomplete="off" />
+		<button>Senden</button>
+	</form>
+	<p>
+		This is the caller side. Please start the call if the box below shows
+		<b>connected</b>.
+	</p>
+	<p>
+		<input id="state" />
+	</p>
+	<p>
+		<input id="calleeState" />
+	</p>
+	<video id="remoteVideo"></video>
+	<!-- <video id="localVideo" muted="muted"></video> -->
+	<button id="startCall" disabled="disabled">Start Call</button>
+	<button id="endCall" disabled="disabled">End Call</button>
+	<script type="text/javascript">
+	var connection = new WebSocket('wss://www.siprtc.ch:4001');
+	
+	connection.onopen = function () {
+	  connection.send('stateRequest');
+	};
+	
+	connection.onmessage = function (e) {
+		  if (e.data == 'calleeReady') {
+			  $('#calleeState').val('Callee Ready');
+		 	$('#calleeState').css("background-color", "#0F0");
+		  } else if (e.data == 'calleeBusy') {
+			  $('#calleeState').val('Callee Busy');
+				$('#calleeState').css("background-color", "#F00");
+		  }
+		};
+	
+	var session;
+
+		var startButton = document.getElementById('startCall');
+		startButton.addEventListener("click", function() {
+			session = userAgent.invite('sip:alice@www.siprtc.ch', options);
+			$('#state').val('in Call');
+			$('#state').css("background-color", "#00F");
+		}, false);
+
+		var endButton = document.getElementById('endCall');
+		endButton.addEventListener("click", function() {
+			session.bye();
+			location.reload();
+		}, false);
+
+		var userAgent = new SIP.UA(
+				{
+					uri : 'bob@www.siprtc.ch',
+					wsServers : [ 'wss://www.siprtc.ch:4000' ],
+					register : false,
+					traceSip : true,
+					displayName : "Bob",
+					iceCheckingTimeout : 2000,
+					stunServers : [ "stun:stun.3cx.com:3478",
+							"stun:stun2.3cx.com:3478" ],
+					turnServers : [ {
+						urls : "turn:turn.tlab.ch:80",
+						username : "tlabuser",
+						password : "tlabpass"
+					} ]
+				})
+		userAgent.on('connecting', function() {
+			$('#state').val('connecting');
+			$('#state').css("background-color", "#FF0");
+			document.getElementById('startCall').disabled = 'disabled';
+		})
+
+		userAgent.on('connected', function() {
+			$('#state').val('connected');
+			$('#state').css("background-color", "#0F0");
+			document.getElementById('startCall').disabled = false;
+			document.getElementById('endCall').disabled = false;
+		})
+
+		userAgent.on('disconnected', function() {
+			$('#state').val('disconnected');
+			$('#state').css("background-color", "#F00");
+			document.getElementById('startCall').disabled = 'disabled';
+		})
+
+		userAgent.on('message', function(msg) {
+			$('#messages').append($('<li>').text(msg.body));
+		});
+
+		$('form').submit(function() {
+			userAgent.message('alice@www.siprtc.ch', $('#m').val());
+			$('#messages').append($('<li class="red">').text($('#m').val()));
+			$('#m').val('');
+			return false;
+		});
+
+		var options = {
+			media : {
+				constraints : {
+					audio : true,
+					video : true
+				},
+				render : {
+					remote : document.getElementById('remoteVideo'),
+				}
+			}
+		};
+	</script>
+</body>
+</html>

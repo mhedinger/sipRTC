@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head profile="http://www.w3.org/2005/10/profile">
+<title>Socket.IO chat with rooms</title>
+<link rel="icon" type="image/vnd.microsoft.icon" href="https://www.siprtc.ch/favicon.ico" />
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font: 13px Helvetica, Arial;
+}
+
+form {
+	background: #000;
+	padding: 3px;
+	position: fixed;
+	width: 100%;
+}
+
+form input {
+	border: 0;
+	padding: 10px;
+	width: 90%;
+	margin-right: .5%;
+}
+
+form button {
+	width: 9%;
+	border: none;
+	padding: 10px;
+}
+
+#formJoin {
+	bottom: 40px;
+}
+
+#formSend {
+	bottom: 0;
+}
+
+#connectButton {
+	background: rgb(255, 224, 255);
+}
+
+#sendMessage {
+	background: rgb(130, 224, 255);
+}
+
+#messages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+#messages li {
+	padding: 5px 10px;
+}
+
+#messages li:nth-child(odd) {
+	background: #eee;
+}
+</style>
+</head>
+<body>
+	<ul id="messages"></ul>
+
+	<form action="" id="formJoin">
+		<input type="text" id="room" size="24" maxlength="24"
+			value="Kanalnummer"
+			onblur="if (this.value == '') {this.value = 'Kanalnummer';}"
+			onfocus="if (this.value == 'Kanalnummer') {this.value = '';}" />
+		<button id="connectButton">Verbinden</button>
+	</form>
+
+	<form action="" id="formSend">
+		<input id="m" autocomplete="off" disabled="disabled" />
+		<button id="sendMessage" disabled="disabled">Senden</button>
+	</form>
+
+	<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script>
+		var isRoomJoined = false;
+		var socket = io.connect('https://www.siprtc.ch:3001');
+
+		$('#formSend').submit(function() {
+			socket.emit('chat message', $('#m').val());
+			$('#m').val('');
+			return false;
+		});
+
+		$('#formJoin').submit(function() {
+			joinRoom();
+			return false;
+		});
+
+		socket.on('chat message', function(msg) {
+			$('#messages').append($('<li>').text(msg));
+		});
+		socket.on('full', function(msg) {
+			window.alert("Room is already full!");
+			isRoomJoined = false;
+			document.getElementById('m').disabled = 'disabled';
+			document.getElementById('sendMessage').disabled = 'disabled';
+		});
+
+		function joinRoom() {
+			if (isRoomJoined == false) {
+				console.log("Raum wird beigetreten...");
+				isRoomJoined = true;
+				document.getElementById('m').disabled = false;
+				document.getElementById('sendMessage').disabled = false;
+				document.getElementById('room').disabled = 'disabled';
+				document.getElementById('connectButton').disabled = 'disabled';
+				socket.emit('join',
+						document.getElementById('room').value);
+			}
+		}
+	</script>
+</body>
+</html>

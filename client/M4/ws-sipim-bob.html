@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head profile="http://www.w3.org/2005/10/profile">
+<title>SIP based chat - Bob</title>
+<link rel="icon" type="image/vnd.microsoft.icon" href="https://www.siprtc.ch/favicon.ico" />
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font: 13px Helvetica, Arial;
+}
+
+div {
+        display: inline;
+      }
+
+video {
+    border: 1px solid lightgrey;
+}
+
+form {
+	background: #000;
+	padding: 3px;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+}
+
+form input {
+	border: 0;
+	padding: 10px;
+	width: 90%;
+	margin-right: .5%;
+}
+
+form button {
+	width: 9%;
+	background: rgb(130, 224, 255);
+	border: none;
+	padding: 10px;
+}
+
+#messages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+#messages li {
+	padding: 5px 10px;
+}
+
+#messages li:nth-child(odd) {
+	background: #eee;
+}
+</style>
+</head>
+<body>
+	<ul id="messages"></ul>
+	<form action="">
+		<input id="m" autocomplete="off" />
+		<button>Senden</button>
+	</form>
+	<script src="https://sipjs.com/download/sip-0.7.8.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	
+	<script type="text/javascript">
+    var userAgent = new SIP.UA({
+    	  uri: 'bob@www.siprtc.ch',
+    	  wsServers: ['wss://www.siprtc.ch:4000'],
+    	  register: false,
+    	  traceSip: true
+    	})
+
+    userAgent.on('message', function (msg) {
+    	$('#messages').append($('<li>').text(msg.body));
+    });
+    </script>
+	
+	<script>
+		$('form').submit(function() {
+			userAgent.message('alice@www.siprtc.ch', $('#m').val());
+			$('#m').val('');
+			return false;
+		});
+	</script>
+</body>
+</html>

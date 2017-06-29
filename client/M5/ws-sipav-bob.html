@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Tahoma, Geneva, sans-serif;
+      }
+      div {
+        display: inline;
+      }
+      video {
+    border: 1px solid lightgrey;
+}
+    </style>
+	<script src="https://sipjs.com/download/sip-0.7.8.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  </head>
+  <body>
+  <p>This is the caller side. Please start the call if the box below shows <b>connected</b>.</p>
+  <p><input id="state" /></p>
+<video id="remoteVideo"></video>
+<video id="localVideo" muted="muted"></video>
+<button id="startCall" disabled="disabled">Start Call</button>
+<button id="endCall" disabled="disabled">End Call</button>
+<script type="text/javascript">
+    var session;
+    
+    var startButton = document.getElementById('startCall');
+    startButton.addEventListener("click", function () {
+        session = userAgent.invite('sip:alice@www.siprtc.ch', options);
+        $('#state').val('in Call');
+    	$('#state').css("background-color","#00F");
+    	session.on('bye', function(request) {
+        	location.reload();
+        })
+    }, false);
+
+    var endButton = document.getElementById('endCall');
+    endButton.addEventListener("click", function () {
+        session.bye();
+        location.reload();
+    }, false);
+
+    var userAgent = new SIP.UA({
+    	  uri: 'bob@www.siprtc.ch',
+    	  wsServers: ['wss://www.siprtc.ch:4000'],
+    	  register: false,
+    	  displayName: "Bob",
+    	  iceCheckingTimeout: 2000,
+    	  stunServers: ["stun:stun.3cx.com:3478", "stun:stun2.3cx.com:3478"],
+    	  turnServers: [
+    		  {
+    		    urls:"turn:turn.tlab.ch:80",
+    		    username:"tlabuser",
+    		    password:"tlabpass"
+    		  }
+    		]
+    	})
+    userAgent.on('connecting', function () {
+    	$('#state').val('connecting');
+    	$('#state').css("background-color","#FF0");
+    	document.getElementById('startCall').disabled = 'disabled';
+    })
+    
+    userAgent.on('connected', function () {
+    	$('#state').val('connected');
+    	$('#state').css("background-color","#0F0");
+    	document.getElementById('startCall').disabled = false;
+    	document.getElementById('endCall').disabled = false;
+    })
+    
+    userAgent.on('disconnected', function () {
+    	$('#state').val('disconnected');
+    	$('#state').css("background-color","#F00");
+    	document.getElementById('startCall').disabled = 'disabled';
+    })
+    
+    var options = {
+        media: {
+            constraints: {
+                audio: true,
+                video: true
+            },
+            render: {
+                remote: document.getElementById('remoteVideo'),
+                local: document.getElementById('localVideo')
+            }
+        }
+    };
+    
+    </script>
+  </body>
+</html>
+
+
+
+
+    

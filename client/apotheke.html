@@ -2,8 +2,7 @@
 <html>
 <head>
 <title>Apotheken-Notfalldienst - Apotheken-Ansicht</title>
-<link rel="icon" type="image/vnd.microsoft.icon"
-	href="https://www.siprtc.ch/sipRTC/favicon.ico" />
+<link rel="icon" type="image/vnd.microsoft.icon" href="https://www.siprtc.ch/favicon.ico" />
 <style>
 * {
 	margin: 0;
@@ -63,87 +62,96 @@ form button {
 	color: #f00;
 }
 </style>
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-
-<script src="https://sipjs.com/download/sip-0.7.7.js"></script>
+<script src="https://sipjs.com/download/sip-0.7.8.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 
 </head>
 <body>
-	<ul id="messages"></ul>
-	<form action="">
-		<input id="m" autocomplete="off" />
-		<button>Senden</button>
-	</form>
-	<p>This is the callee side. Ask the caller to start the call.</p>
-	<p>
+
+	<p>Dies ist die Apotheken-Seite. Der Anruf wird von der Kundenseite gestartet.</p>
+	<p style="text-align: left;">
 		<input id="state" />
 	</p>
-	<video id="remoteVideo"></video>
-	<video id="localVideo" muted="muted"></video>
+	<p style="text-align: left;">
+		<button class="btn btn-danger" id="endCall" disabled="disabled">Beenden</button>
+	</p>
+
+	<p style="text-align: left;<">
+		<video id="remoteVideo"
+			style="border: 1px solid lightgrey; width: 350px;"></video>
+		<video id="localVideo" muted="muted"
+			style="position: relative; top: -5px; left: -350px; width: 100px; border: 0px;"></video>
+
+	</p>
+	<ul id="messages" style="overflow: auto; max-height: 200px;"></ul>
+	<form action="">
+		<input id="m" autocomplete="off" />
+		<button class="btn btn-primary">Senden</button>
+	</form>
+
 	<script type="text/javascript">
-	var connection = new WebSocket('wss://www.siprtc.ch:4001');
-	
-	// When the connection is open, send some data to the server
-	connection.onopen = function () {
-	  connection.send('Ping'); // Send the message 'Ping' to the server
-	};
-	
-	connection.onclose = function() {
-		connection.send('calleeBusy');
-	}
-	
-		//Creates the anonymous user agent so that you can make calls
+		var connection = new WebSocket('wss://www.siprtc.ch:4001');
+
+		connection.onopen = function() {
+			connection.send('Ping');
+		};
+
+		connection.onclose = function() {
+			connection.send('calleeBusy');
+		}
+
+		window.onunload = function() {
+			connection.send('calleeBusy');
+		}
+
+		var endButton = document.getElementById('endCall');
+
 		var userAgent = new SIP.UA(
 				{
 					uri : '300@www.siprtc.ch',
-					//wsServers : [ 'wss://asterisk.prbox.biz:8089/ws' ],
 					wsServers : [ 'wss://www.siprtc.ch:5063' ],
-					// Replace this with the username from your sip.conf file
-					  authorizationUser: '300',
-
-					  // Replace this with the password from your sip.conf file
-					  password: '300',
-					  hackStripTcp : true,
-					  userAgentString: "sipRTC 1.0.0 Apotheke",
-
-					  // HackIpInContact for Asterisk
-					  //hackIpInContact: true,
-					  //hackWssInTransport: true,
+					authorizationUser : '300',
+					password : '300',
+					registerExpires: 600,
+					hackStripTcp : true,
+					userAgentString : "sipRTC 1.0.0 Apotheke",
 					register : true,
 					traceSip : true,
 					displayName : "Alice",
-					iceCheckingTimeout : 2000,
+					iceCheckingTimeout : 1000,
 					stunServers : [ "stun:stun.3cx.com:3478",
-							"stun:stun2.3cx.com:3478" ],
+									"stun:stun2.3cx.com:3478" ],
 					turnServers : [ {
 						urls : "turn:turn.tlab.ch:80",
 						username : "tlabuser",
 						password : "tlabpass"
 					} ]
 				})
+
 		userAgent.on('connecting', function() {
-			$('#state').val('connecting');
+			$('#state').val('Verbinde...');
 			$('#state').css("background-color", "#FF0");
 		})
 
 		userAgent.on('connected', function() {
-			$('#state').val('connected');
+			$('#state').val('Verbunden');
 			$('#state').css("background-color", "#0F0");
+			document.getElementById('endCall').disabled = false;
 			connection.send('calleeReady');
 		})
 
 		userAgent.on('disconnected', function() {
-			$('#state').val('disconnected');
+			$('#state').val('Getrennt');
 			$('#state').css("background-color", "#F00");
 			connection.send('calleeBusy');
 		})
 
 		userAgent.on('invite', function(session) {
-			$('#state').val('in Call');
+			$('#state').val('im Gespräch');
 			$('#state').css("background-color", "#00F");
 			connection.send('calleeBusy');
 			session.accept({
@@ -157,24 +165,40 @@ form button {
 			session.on('bye', function(request) {
 				location.reload();
 			});
+
+			endButton.addEventListener("click", function() {
+				session.bye();
+				location.reload();
+			}, false);
 		});
 
 		userAgent.on('message', function(msg) {
-			// If we have not received any messages yet, remove the placeholder
-			// text.
-			$('#messages').append($('<li>').text(msg.body));
+			$('#messages').prepend($('<li>').text(msg.body));
 		});
 
 		$('form').submit(function() {
 			userAgent.message('301@www.siprtc.ch', $('#m').val());
-			$('#messages').append($('<li class="red">').text($('#m').val()));
+			$('#messages').prepend($('<li class="red">').text($('#m').val()));
 			$('#m').val('');
 			return false;
 		});
-		
-		window.onunload = function() {
-			connection.send('calleeBusy');
-		}
+
+		var options = {
+			media : {
+				constraints : {
+					audio : true,
+					video : true
+				},
+				render : {
+					remote : document.getElementById('remoteVideo'),
+					local : document.getElementById('localVideo')
+				}
+			}
+		};
 	</script>
 </body>
 </html>
+
+
+
+
